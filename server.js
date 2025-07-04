@@ -88,5 +88,20 @@ app.get('/api/save-project/:name', async (req, res) => {
   }
 });
 
+// 🔹 Get all saved projects
+app.get('/api/save-projects', async (req, res) => {
+  try {
+    const querySpec = {
+      query: 'SELECT * FROM c',
+    };
+    const { resources } = await container.items.query(querySpec).fetchAll();
+    res.status(200).json(resources);
+  } catch (err) {
+    console.error('Error fetching projects:', err);
+    res.status(500).json({ message: 'Failed to fetch projects' });
+  }
+});
+
+
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
