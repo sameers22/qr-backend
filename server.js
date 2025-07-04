@@ -102,6 +102,17 @@ app.get('/api/save-projects', async (req, res) => {
   }
 });
 
+app.get('/api/test-db', async (req, res) => {
+  try {
+    const querySpec = { query: 'SELECT * FROM c OFFSET 0 LIMIT 1' };
+    const { resources } = await container.items.query(querySpec).fetchAll();
+    res.status(200).json(resources);
+  } catch (err) {
+    console.error('❌ DB Test Error:', err);
+    res.status(500).json({ message: 'Cosmos DB test failed' });
+  }
+});
+
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
