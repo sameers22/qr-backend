@@ -4,10 +4,10 @@ const cors = require('cors');
 const { CosmosClient } = require('@azure/cosmos');
 
 const app = express();
-app.use(cors({ origin: '*' })); // Allow all origins (safe for dev)
-app.use(express.json()); // Replaces bodyParser
+app.use(cors({ origin: '*' }));
+app.use(express.json());
 
-// 🔹 Cosmos DB Client Setup
+// Cosmos DB setup
 const client = new CosmosClient({
   endpoint: process.env.COSMOS_DB_ENDPOINT,
   key: process.env.COSMOS_DB_KEY,
@@ -15,12 +15,12 @@ const client = new CosmosClient({
 const db = client.database(process.env.COSMOS_DB_DATABASE);
 const container = db.container(process.env.COSMOS_DB_CONTAINER);
 
-// ✅ Health Check Route
+// ✅ Health Check
 app.get('/api/health', (req, res) => {
   res.status(200).json({ status: 'ok', time: new Date().toISOString() });
 });
 
-// ✅ Test DB Connection Route
+// ✅ Test DB
 app.get('/api/test-db', async (req, res) => {
   try {
     const querySpec = { query: 'SELECT * FROM c OFFSET 0 LIMIT 1' };
@@ -32,12 +32,10 @@ app.get('/api/test-db', async (req, res) => {
   }
 });
 
-// ✅ Save Project Route
+// ✅ Save Project
 app.post('/api/save-project', async (req, res) => {
   try {
-    console.log('📥 Incoming save-project request:', req.body);
     const { name, text, time } = req.body;
-
     if (!name || !text || !time) {
       return res.status(400).json({ message: 'Missing required fields' });
     }
@@ -47,6 +45,7 @@ app.post('/api/save-project', async (req, res) => {
       name,
       text,
       time,
+      scanCount: 0, // ✅ initialize tracking
       type: 'qr_project',
     };
 
@@ -58,7 +57,7 @@ app.post('/api/save-project', async (req, res) => {
   }
 });
 
-// ✅ Get All Projects Route
+// ✅ Get All Projects
 app.get('/api/get-projects', async (req, res) => {
   try {
     const query = {
@@ -74,7 +73,7 @@ app.get('/api/get-projects', async (req, res) => {
   }
 });
 
-// 🔥 DELETE a project by ID
+// ✅ Delete Project
 app.delete('/api/delete-project/:id', async (req, res) => {
   try {
     const { id } = req.params;
@@ -86,18 +85,16 @@ app.delete('/api/delete-project/:id', async (req, res) => {
   }
 });
 
-// ✏️ UPDATE a project by ID
+// ✅ Update Project
 app.put('/api/update-project/:id', async (req, res) => {
   try {
     const { id } = req.params;
     const { name, text } = req.body;
-
     if (!name || !text) {
       return res.status(400).json({ message: 'Missing fields' });
     }
 
     const { resource: existing } = await container.item(id, id).read();
-
     const updated = {
       ...existing,
       name,
@@ -113,6 +110,44 @@ app.put('/api/update-project/:id', async (req, res) => {
   }
 });
 
+// ✅ Track Scans
+app.get('/api/track/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { resource: project } = await container.item(id, id).read();
+
+    if (!project || !project.text) {
+      return res.status(404).send('QR project not found');
+    }
+
+    project.scanCount = (project.scanCount || 0) + 1;
+
+    await container.items.upsert(project);
+
+    // Redirect to actual content
+    res.redirect(project.text);
+  } catch (err) {
+    console.error('❌ Tracking Error:', err.message);
+    res.status(500).send('Tracking failed');
+  }
+});
+
+// ✅ Get Scan Count
+app.get('/api/get-scan-count/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { resource: project } = await container.item(id, id).read();
+
+    if (!project) {
+      return res.status(404).json({ message: 'Project not found' });
+    }
+
+    res.status(200).json({ scanCount: project.scanCount || 0 });
+  } catch (err) {
+    console.error('❌ Get Scan Count Error:', err.message);
+    res.status(500).json({ message: 'Failed to get scan count' });
+  }
+});
 
 // ✅ Start Server
 const PORT = process.env.PORT || 5000;
