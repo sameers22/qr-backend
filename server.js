@@ -149,6 +149,18 @@ app.get('/api/get-scan-count/:id', async (req, res) => {
   }
 });
 
+// 📊 Get project by ID (with scanCount)
+app.get('/api/get-project/:id', async (req, res) => {
+  const { id } = req.params;
+  try {
+    const { resource } = await container.item(id, id).read();
+    res.status(200).json({ project: resource });
+  } catch (err) {
+    res.status(404).json({ message: 'Project not found' });
+  }
+});
+
+
 // ✅ Start Server
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
