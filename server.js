@@ -74,6 +74,46 @@ app.get('/api/get-projects', async (req, res) => {
   }
 });
 
+// 🔥 DELETE a project by ID
+app.delete('/api/delete-project/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    await container.item(id, id).delete();
+    res.status(200).json({ message: 'Project deleted' });
+  } catch (err) {
+    console.error('❌ Delete error:', err.message);
+    res.status(500).json({ message: 'Failed to delete project' });
+  }
+});
+
+// ✏️ UPDATE a project by ID
+app.put('/api/update-project/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, text } = req.body;
+
+    if (!name || !text) {
+      return res.status(400).json({ message: 'Missing fields' });
+    }
+
+    const { resource: existing } = await container.item(id, id).read();
+
+    const updated = {
+      ...existing,
+      name,
+      text,
+      time: new Date().toISOString(),
+    };
+
+    const { resource } = await container.items.upsert(updated);
+    res.status(200).json({ message: 'Project updated', project: resource });
+  } catch (err) {
+    console.error('❌ Update error:', err.message);
+    res.status(500).json({ message: 'Failed to update project' });
+  }
+});
+
+
 // ✅ Start Server
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
