@@ -31,14 +31,14 @@ app.get('/api/test-db', async (req, res) => {
     res.status(500).json({ message: 'Cosmos DB test failed', error: err.message });
   }
 });
-// ✅ Save Project Route (with qrImage support)
+
+// ✅ Save Project Route
 app.post('/api/save-project', async (req, res) => {
   try {
     console.log('📥 Incoming save-project request:', req.body);
+    const { name, text, time } = req.body;
 
-    const { name, text, time, qrImage } = req.body;
-
-    if (!name || !text || !time || !qrImage) {
+    if (!name || !text || !time) {
       return res.status(400).json({ message: 'Missing required fields' });
     }
 
@@ -47,7 +47,6 @@ app.post('/api/save-project', async (req, res) => {
       name,
       text,
       time,
-      qrImage, // 🆕 Save base64 image string
       type: 'qr_project',
     };
 
@@ -58,7 +57,6 @@ app.post('/api/save-project', async (req, res) => {
     res.status(500).json({ message: 'Failed to save project', error: err.message });
   }
 });
-
 
 // ✅ Get All Projects Route
 app.get('/api/get-projects', async (req, res) => {
