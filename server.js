@@ -29,6 +29,7 @@ app.get('/api/test-db', async (req, res) => {
   }
 });
 
+// 🔹 Save Project Route
 app.post('/api/save-project', async (req, res) => {
   try {
     const { name, text, time } = req.body;
@@ -38,11 +39,11 @@ app.post('/api/save-project', async (req, res) => {
     }
 
     const newItem = {
+      id: `${Date.now()}-${Math.random()}`, // unique ID
       name,
       text,
       time,
-      type: 'qr_project', // optional tag
-      id: `${Date.now()}-${Math.random()}` // unique ID
+      type: 'qr_project',
     };
 
     const { resource } = await container.items.create(newItem);
@@ -53,7 +54,21 @@ app.post('/api/save-project', async (req, res) => {
   }
 });
 
+// 🔹 Get All Projects Route
+app.get('/api/get-projects', async (req, res) => {
+  try {
+    const query = {
+      query: 'SELECT * FROM c WHERE c.type = @type ORDER BY c._ts DESC',
+      parameters: [{ name: '@type', value: 'qr_project' }],
+    };
 
+    const { resources } = await container.items.query(query).fetchAll();
+    res.status(200).json({ projects: resources });
+  } catch (err) {
+    console.error('❌ Fetch Projects Error:', err);
+    res.status(500).json({ message: 'Failed to fetch projects' });
+  }
+});
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
