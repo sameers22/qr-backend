@@ -110,22 +110,26 @@ app.put('/api/update-project/:id', async (req, res) => {
   }
 });
 
-// ✅ Track Scans
-app.get('/api/track/:id', async (req, res) => {
+// ✅ Track Scans & Redirect
+app.get('/track/:id', async (req, res) => {
   try {
     const { id } = req.params;
+
+    // Read project by ID (partition key = id)
     const { resource: project } = await container.item(id, id).read();
 
     if (!project || !project.text) {
       return res.status(404).send('QR project not found');
     }
 
+    // Increment scan count
     project.scanCount = (project.scanCount || 0) + 1;
 
+    // Update the project in the database
     await container.items.upsert(project);
 
-    // Redirect to actual content
-    res.redirect(project.text);
+    // ✅ Redirect to actual URL or text
+    res.redirect(project.text.startsWith('http') ? project.text : `https://${project.text}`);
   } catch (err) {
     console.error('❌ Tracking Error:', err.message);
     res.status(500).send('Tracking failed');
