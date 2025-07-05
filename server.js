@@ -29,5 +29,31 @@ app.get('/api/test-db', async (req, res) => {
   }
 });
 
+app.post('/api/save-project', async (req, res) => {
+  try {
+    const { name, text, time } = req.body;
+
+    if (!name || !text || !time) {
+      return res.status(400).json({ message: 'Missing required fields' });
+    }
+
+    const newItem = {
+      name,
+      text,
+      time,
+      type: 'qr_project', // optional tag
+      id: `${Date.now()}-${Math.random()}` // unique ID
+    };
+
+    const { resource } = await container.items.create(newItem);
+    res.status(201).json({ message: 'Project saved', project: resource });
+  } catch (err) {
+    console.error('❌ Save Project Error:', err);
+    res.status(500).json({ message: 'Failed to save project' });
+  }
+});
+
+
+
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
